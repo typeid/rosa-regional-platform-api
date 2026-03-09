@@ -133,14 +133,15 @@ func TestE2E(t *testing.T) {
 	RunSpecs(t, "ROSA Regional Platform API E2E Suite")
 }
 
-var _ = Describe("Platform API", func() {
+// Ordered for now, as our test size is small
+var _ = Describe("Platform API", Ordered, func() {
 	var (
 		baseURL   string
 		accountID string
 		apiClient *APIClient
 	)
 
-	BeforeEach(func() {
+	BeforeAll(func() {
 		baseURL = os.Getenv("E2E_BASE_URL")
 		accountID = os.Getenv("E2E_ACCOUNT_ID")
 		apiClient = NewAPIClient(baseURL)
@@ -212,7 +213,7 @@ var _ = Describe("Platform API", func() {
 
 	It("should be able to register a new management cluster", func() {
 		// Generate a unique cluster name for this test run
-		clusterName := fmt.Sprintf("test-mgmt-%s", time.Now().Format("20060102-150405"))
+		clusterName := fmt.Sprintf("test-mgmt-%s", time.Now().Format("20060102150405"))
 		GinkgoWriter.Printf("Creating management cluster: %s\n", clusterName)
 
 		// create a management cluster with unique name
