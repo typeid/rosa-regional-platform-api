@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,6 +145,15 @@ var _ = Describe("Platform API", Ordered, func() {
 	BeforeAll(func() {
 		baseURL = os.Getenv("E2E_BASE_URL")
 		accountID = os.Getenv("E2E_ACCOUNT_ID")
+		if accountID == "" {
+			GinkgoWriter.Printf("No E2E_ACCOUNT_ID set, using AWS STS caller identity\n")
+			cmd := exec.Command("aws", "sts", "get-caller-identity", "--query", "Account", "--output", "text")
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				Fail("Failed to get AWS account ID: " + err.Error())
+			}
+			accountID = strings.TrimSpace(string(output))
+		}
 		apiClient = NewAPIClient(baseURL)
 	})
 
