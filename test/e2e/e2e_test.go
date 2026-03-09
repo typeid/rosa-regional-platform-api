@@ -211,24 +211,13 @@ var _ = Describe("Platform API", func() {
 	})
 
 	It("should be able to register a new management cluster", func() {
-		// If a management cluster named test-management-cluster already exists, skip (API identifies by ID, not name)
-		listResp := getAndExpectOK(apiClient, "/api/v0/management_clusters", accountID, "")
-		Expect(listResp.StatusCode).To(Equal(http.StatusOK))
-		var list struct {
-			Items []map[string]interface{} `json:"items"`
-		}
-		err := json.Unmarshal(listResp.Body, &list)
-		Expect(err).To(BeNil())
-		for _, item := range list.Items {
-			if name, _ := item["name"].(string); name == "test-management-cluster" {
-				GinkgoWriter.Println("Management cluster test-management-cluster already exists, skipping test")
-				Skip("Management cluster test-management-cluster already exists, skipping test")
-			}
-		}
+		// Generate a unique cluster name for this test run
+		clusterName := fmt.Sprintf("test-mgmt-%s", time.Now().Format("20060102-150405"))
+		GinkgoWriter.Printf("Creating management cluster: %s\n", clusterName)
 
-		// create a management cluster
+		// create a management cluster with unique name
 		managementCluster := map[string]interface{}{
-			"name": "test-management-cluster",
+			"name": clusterName,
 			"labels": map[string]string{
 				"cluster_type": "management",
 			},
@@ -245,7 +234,7 @@ var _ = Describe("Platform API", func() {
 		Expect(err).To(BeNil())
 		Expect(managementCluster["kind"]).To(Equal("Consumer"))
 		Expect(managementCluster["href"]).ToNot(BeEmpty())
-		Expect(managementCluster["name"]).To(Equal("test-management-cluster"))
+		Expect(managementCluster["name"]).To(Equal(clusterName))
 		Expect(managementCluster["labels"].(map[string]interface{})["cluster_type"]).To(Equal("management"))
 		Expect(managementCluster["created_at"]).ToNot(BeEmpty())
 		Expect(managementCluster["updated_at"]).ToNot(BeEmpty())
@@ -262,7 +251,7 @@ var _ = Describe("Platform API", func() {
 		Expect(err).To(BeNil())
 		Expect(managementCluster2["kind"]).To(Equal("Consumer"))
 		Expect(managementCluster2["href"]).ToNot(BeEmpty())
-		Expect(managementCluster2["name"]).To(Equal("test-management-cluster"))
+		Expect(managementCluster2["name"]).To(Equal(clusterName))
 		Expect(managementCluster2["labels"].(map[string]interface{})["cluster_type"]).To(Equal("management"))
 		Expect(managementCluster2["created_at"]).ToNot(BeEmpty())
 		Expect(managementCluster2["updated_at"]).ToNot(BeEmpty())
@@ -281,6 +270,7 @@ var _ = Describe("Platform API", func() {
 		}
 		err := json.Unmarshal(listResp.Body, &list)
 		Expect(err).To(BeNil())
+		Expect(list.Items).ToNot(BeEmpty(), "No management clusters registered - cannot test work creation")
 		for _, item := range list.Items {
 			managementClusterID := item["id"].(string)
 			managementClusterName := item["name"].(string)
