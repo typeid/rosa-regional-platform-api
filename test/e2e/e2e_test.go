@@ -155,7 +155,9 @@ var _ = Describe("Platform API", func() {
 
 		Expect(baseURL).NotTo(BeEmpty())
 		Expect(baseURL).To(MatchRegexp("^https?://.*$"))
-		Expect(baseURL).To(MatchRegexp("^https://[a-zA-Z0-9]+\\.execute-api\\.us-east-2\\.amazonaws\\.com/prod$"))
+		// Validate API Gateway URL format: https://<api-id>.execute-api.<region>.amazonaws.com[/<stage>]
+		// Accepts any AWS region (e.g., us-east-1, eu-west-2, ap-southeast-1) and optional stage/path
+		Expect(baseURL).To(MatchRegexp("^https://[a-zA-Z0-9]+\\.execute-api\\.[a-z]+-[a-z]+-[0-9]+\\.amazonaws\\.com(/.*)?$"))
 	})
 
 	// it should successfully call the API GET /live endpoint
@@ -363,6 +365,10 @@ var _ = Describe("Platform API", func() {
 			err := json.Unmarshal(response.Body, &list)
 			Expect(err).To(BeNil())
 			Expect(list.Items).ToNot(BeEmpty())
+
+			// Track whether we found at least one bundle showing connectivity
+			foundOrSynced := false
+
 			// Structure: status.resourceStatus[] has statusFeedback and conditions (e.g. type StatusFeedbackSynced, status True)
 			for _, item := range list.Items {
 				status, _ := item["status"].(map[string]interface{})
@@ -386,10 +392,14 @@ var _ = Describe("Platform API", func() {
 						}
 					}
 					if hasFeedbackSynced || (statusFeedback != nil && len(statusFeedback) > 0) {
+						foundOrSynced = true
 						GinkgoWriter.Printf("resource_bundle id=%v name=%v resourceStatus with statusFeedback / StatusFeedbackSynced: %v\n", item["id"], item["name"], statusFeedback)
 					}
 				}
 			}
+
+			// Fail if no resource bundle shows maestro-server to maestro-agent connectivity
+			Expect(foundOrSynced).To(BeTrue(), "No resource bundles found with statusFeedback or StatusFeedbackSynced - maestro-server may not be connected to maestro-agent")
 		})
 	})
 

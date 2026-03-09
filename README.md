@@ -216,13 +216,6 @@ docker run --rm \
 
 The JUnit XML results will be available in `./test-results/junit.xml` after the tests complete.
 
-**Security Note**: The `~/.aws` directory is mounted read-only (`:ro`) to prevent the container from modifying your credentials.
-
-**Note about credential_process**: If your AWS config uses `credential_process` (e.g., with `uv` or other tools), the e2e container includes common tools like Python and `uv`. However, if your credential process needs additional dependencies, you may need to:
-1. Use static credentials instead (set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` env vars)
-2. Build a custom container with your specific tools
-3. Use AWS SSO or assume role credentials with longer expiry
-
 #### Common E2E Test Scenarios
 
 **Local development on macOS/Linux** (fastest):
@@ -291,7 +284,7 @@ The test will show:
 - ✗ Error message if credentials are missing or invalid
 
 **Example output:**
-```
+```bash
 ✓ AWS Credentials verified successfully
   Account: 123456789012
   ARN: arn:aws:sts::123456789012:assumed-role/MyRole/session

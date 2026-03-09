@@ -16,7 +16,7 @@ WORKDIR /app
 RUN apk add --no-cache git ca-certificates make bash
 
 # Install ginkgo CLI
-RUN go install github.com/onsi/ginkgo/v2/ginkgo@latest
+RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.28.1
 
 # Copy go mod files and download dependencies
 COPY go.mod go.sum ./

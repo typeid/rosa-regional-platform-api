@@ -10,6 +10,12 @@ PLATFORMS ?= linux/amd64,linux/arm64
 DYNAMODB_ENDPOINT ?= http://localhost:8180
 CEDAR_AGENT_ENDPOINT ?= http://localhost:8181
 
+# AWS settings - these can be overridden by environment variables or command line
+AWS_PROFILE ?=
+AWS_REGION ?=
+FOCUS ?=
+SKIP ?= Authz
+
 # Detect host platform for native builds
 HOST_OS := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 HOST_ARCH := $(shell uname -m)
@@ -90,10 +96,13 @@ test-coverage:
 
 # Run e2e tests (native - works on Linux, macOS, Windows)
 test-e2e:
-	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo -v --skip="Authz" --junit-report=junit.xml --output-dir=./test-results ./test/e2e
+	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo -v \
+	--skip="Authz" --junit-report=junit.xml \
+	--output-dir=./test-results ./test/e2e
 
 test-e2e-quiet:
-	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo --skip="Authz" --junit-report=junit.xml --output-dir=./test-results ./test/e2e
+	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo --skip="Authz" \
+	--junit-report=junit.xml --output-dir=./test-results ./test/e2e
 
 # Run just the AWS credentials check test
 test-e2e-awscreds:
@@ -169,13 +178,6 @@ image-e2e-push-multiarch:
 		-t $(IMAGE_REPO)-e2e:$(GIT_SHA) \
 		--push .
 
-# AWS settings - these can be overridden by environment variables or command line
-# AWS_PROFILE is picked up from environment (no default to force explicit setting)
-AWS_PROFILE ?=
-AWS_REGION ?= us-east-2
-FOCUS ?=
-SKIP ?= Authz
-
 # Build ginkgo command with focus/skip flags
 GINKGO_CMD := ginkgo -v
 ifneq ($(FOCUS),)
@@ -186,7 +188,8 @@ ifneq ($(SKIP),)
 endif
 GINKGO_CMD += --junit-report=junit.xml --output-dir=/app/test-results ./test/e2e
 
-# Since we're using dynamic credentials in our aws config, we need to export the credentials to the container
+# Since we're using dynamic credentials in our aws config, we need to export the 
+# credentials to the container
 test-e2e-container: image-e2e-multiarch
 	@echo "✅ Exporting static credentials from profile $(AWS_PROFILE)..."
 	@eval "$$(aws configure export-credentials --profile $(AWS_PROFILE) --format env-no-export)" && \
