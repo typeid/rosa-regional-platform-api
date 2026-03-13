@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
@@ -24,32 +22,9 @@ const emptyPayloadHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca49599
 
 // apiGatewayRegionFromURL extracts the AWS region from an API Gateway URL or ROSA int URL.
 // e.g. https://id.execute-api.us-east-2.amazonaws.com/prod -> "us-east-2"
-// e.g. https://api.us-east-1.int.rosa.devshift.net -> "us-east-1"
+// e.g. https://api.us-east-1.int0.rosa.devshift.net -> "us-east-1"
 // Returns empty string if the URL does not match a known pattern.
 func apiGatewayRegionFromURL(baseURL string) string {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return ""
-	}
-	host := u.Host
-	// api.<region>.int.rosa.devshift.net (e.g. api.us-east-1.int.rosa.devshift.net)
-	if strings.HasSuffix(host, ".int.rosa.devshift.net") && strings.HasPrefix(host, "api.") {
-		parts := strings.Split(host, ".")
-		if len(parts) >= 2 {
-			return parts[1] // region is the second component
-		}
-	}
-	// host is like "id.execute-api.us-east-2.amazonaws.com"
-	if !strings.Contains(host, "execute-api.") || !strings.Contains(host, ".amazonaws.com") {
-		return ""
-	}
-	// ...execute-api.<region>.amazonaws.com
-	parts := strings.Split(host, ".")
-	for i, p := range parts {
-		if p == "execute-api" && i+1 < len(parts) {
-			return parts[i+1]
-		}
-	}
 	return "us-east-1"
 }
 
