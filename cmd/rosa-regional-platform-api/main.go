@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,6 +22,7 @@ var (
 	logFormat       string
 	maestroURL      string
 	maestroGRPCURL  string
+	hyperfleetURL   string
 	allowedAccounts string
 	dynamodbRegion  string
 	dynamodbPrefix  string
@@ -54,6 +56,7 @@ func init() {
 	serveCmd.Flags().StringVar(&maestroURL, "maestro-url", "http://maestro:8000", "Maestro service base URL")
 	serveCmd.Flags().StringVar(&allowedAccounts, "allowed-accounts", "", "Comma-separated list of allowed AWS account IDs")
 	serveCmd.Flags().StringVar(&maestroGRPCURL, "maestro-grpc-url", "maestro-grpc.maestro-server:8090", "Maestro gRPC service base URL")
+	serveCmd.Flags().StringVar(&hyperfleetURL, "hyperfleet-url", "http://hyperfleet-api.hyperfleet-system:8000", "Hyperfleet service base URL")
 	serveCmd.Flags().StringVar(&dynamodbRegion, "dynamodb-region", "", "AWS region for DynamoDB (defaults to us-east-1)")
 	serveCmd.Flags().StringVar(&dynamodbPrefix, "dynamodb-prefix", "rosa", "Prefix for DynamoDB table names (default: rosa)")
 	serveCmd.Flags().IntVar(&apiPort, "api-port", 8000, "API server port")
@@ -78,6 +81,19 @@ func runServe(cmd *cobra.Command, args []string) error {
 	cfg.Logging.Format = logFormat
 	cfg.Maestro.BaseURL = maestroURL
 	cfg.Maestro.GRPCBaseURL = maestroGRPCURL
+
+	// Validate Hyperfleet URL
+	parsedURL, err := url.ParseRequestURI(hyperfleetURL)
+	if err != nil {
+		logger.Error("invalid hyperfleet URL", "url", hyperfleetURL, "error", err)
+		return fmt.Errorf("invalid hyperfleet URL: %w", err)
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		logger.Error("hyperfleet URL must have http or https scheme", "url", hyperfleetURL, "scheme", parsedURL.Scheme)
+		return fmt.Errorf("hyperfleet URL must have http or https scheme, got: %s", parsedURL.Scheme)
+	}
+	cfg.Hyperfleet.BaseURL = hyperfleetURL
+
 	cfg.AllowedAccounts = parseAllowedAccounts(allowedAccounts)
 	cfg.Server.APIPort = apiPort
 	cfg.Server.HealthPort = healthPort
@@ -129,6 +145,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		"metrics_port", cfg.Server.MetricsPort,
 		"maestro_url", cfg.Maestro.BaseURL,
 		"maestro_grpc_url", cfg.Maestro.GRPCBaseURL,
+		"hyperfleet_url", cfg.Hyperfleet.BaseURL,
 		"allowed_accounts_count", len(cfg.AllowedAccounts),
 	)
 
