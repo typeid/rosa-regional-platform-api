@@ -30,9 +30,7 @@ package e2e_cli_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -49,32 +47,32 @@ import (
 // Stdin is nil so the child does not block waiting for input when Ginkgo has no TTY.
 // AWS_PAGER is cleared to avoid aws-cli-style pagers hanging the subprocess.
 // Override the deadline with E2E_ROSACTL_TIMEOUT (e.g. 45m, 1h).
-func runRosactl(bin, region string, args ...string) ([]byte, error) {
-	timeout := 30 * time.Minute
-	if s := os.Getenv("E2E_ROSACTL_TIMEOUT"); s != "" {
-		if d, err := time.ParseDuration(s); err == nil {
-			timeout = d
-		}
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+// func runRosactl(bin, region string, args ...string) ([]byte, error) {
+// 	timeout := 30 * time.Minute
+// 	if s := os.Getenv("E2E_ROSACTL_TIMEOUT"); s != "" {
+// 		if d, err := time.ParseDuration(s); err == nil {
+// 			timeout = d
+// 		}
+// 	}
+// 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+// 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, bin, args...)
-	cmd.Env = append(os.Environ(),
-		"AWS_ACCESS_KEY_ID="+os.Getenv("CUSTOMER_AWS_ACCESS_KEY_ID"),
-		"AWS_SECRET_ACCESS_KEY="+os.Getenv("CUSTOMER_AWS_SECRET_ACCESS_KEY"),
-		"AWS_REGION="+region,
-		"AWS_PAGER=",
-	)
-	cmd.Stdin = nil
+// 	cmd := exec.CommandContext(ctx, bin, args...)
+// 	cmd.Env = append(os.Environ(),
+// 		"AWS_ACCESS_KEY_ID="+os.Getenv("CUSTOMER_AWS_ACCESS_KEY_ID"),
+// 		"AWS_SECRET_ACCESS_KEY="+os.Getenv("CUSTOMER_AWS_SECRET_ACCESS_KEY"),
+// 		"AWS_REGION="+region,
+// 		"AWS_PAGER=",
+// 	)
+// 	cmd.Stdin = nil
 
-	out, err := cmd.CombinedOutput()
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return out, fmt.Errorf("rosactl %q timed out after %v (set E2E_ROSACTL_TIMEOUT): %w\noutput:\n%s",
-			strings.Join(args, " "), timeout, err, string(out))
-	}
-	return out, err
-}
+// 	out, err := cmd.CombinedOutput()
+// 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+// 		return out, fmt.Errorf("rosactl %q timed out after %v (set E2E_ROSACTL_TIMEOUT): %w\noutput:\n%s",
+// 			strings.Join(args, " "), timeout, err, string(out))
+// 	}
+// 	return out, err
+// }
 
 var _ = Describe("ROSACTL CLI E2E Tests", Ordered, func() {
 	var (
