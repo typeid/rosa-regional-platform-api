@@ -1,4 +1,4 @@
-.PHONY: build test test-unit test-authz test-coverage test-e2e lint clean image image-push run generate generate-swagger help fmt vet
+.PHONY: build test test-unit test-authz test-coverage test-e2e test-e2e-cli lint clean image image-push run generate generate-swagger help fmt vet
 
 BINARY_NAME := rosa-regional-platform-api
 IMAGE_REPO ?= quay.io/openshift-online/rosa-regional-platform-api
@@ -48,7 +48,8 @@ help:
 	@echo "  test-unit                      - Run unit tests for a specific package (PKG=./pkg/authz/...)"
 	@echo "  test-authz                     - Run authorization package tests only"
 	@echo "  test-coverage                  - Run unit tests with coverage report"
-	@echo "  test-e2e                       - Run e2e integration tests (native)"
+	@echo "  test-e2e                       - Run e2e integration tests (native, excludes CLI tests)"
+	@echo "  test-e2e-cli                   - Run e2e CLI tests only (HCP cluster creation)"
 	@echo "  test-e2e-awscreds              - Run AWS credentials check test only"
 	@echo "  test-e2e-container             - Run e2e tests in container"
 	@echo "                                   Supports: AWS_PROFILE=..., FOCUS='pattern', SKIP='pattern'"
@@ -105,6 +106,7 @@ test-coverage:
 	@echo "Coverage report: coverage.html"
 
 # Run e2e tests (native - works on Linux, macOS, Windows)
+# Excludes CLI tests (use test-e2e-cli for those) and Authz tests (use test-e2e-authz)
 test-e2e:
 	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo -vv \
 	--skip="Authz" --junit-report=junit.xml \
@@ -112,7 +114,18 @@ test-e2e:
 
 test-e2e-quiet:
 	E2E_BASE_URL="${BASE_URL}" E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" ginkgo --skip="Authz" \
-	--junit-report=junit.xml --output-dir=$(TEST_OUTPUT_DIR) ./test/e2e
+	--junit-report=junit.xml \
+	--output-dir=$(TEST_OUTPUT_DIR) ./test/e2e
+
+# Run e2e CLI tests only (HCP cluster creation via rosactl)
+# Requires: E2E_BASE_URL, ROSACTL_BIN, AWS_REGION, CUSTOMER_AWS_ACCESS_KEY_ID, CUSTOMER_AWS_SECRET_ACCESS_KEY
+test-e2e-cli:
+	@E2E_BASE_URL="${BASE_URL}" \
+		E2E_ACCOUNT_ID="${E2E_ACCOUNT_ID}" \
+		ROSACTL_BIN="${ROSACTL_BIN}" \
+		AWS_REGION="${AWS_REGION}" \
+		ginkgo -vv --junit-report=junit-cli.xml \
+		--output-dir=$(TEST_OUTPUT_DIR) ./test/e2e-cli
 
 # Run just the AWS credentials check test
 test-e2e-awscreds:
